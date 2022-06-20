@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# downloader: this program will download all the files from a site with a specified format using lynx
+#       Usage: ./downloader site file_format
+
+unset website file_format   # ensures I am not using pre-defined variables
+website=${1}
+file_format=${2}
+
+usage() {
+        echo "You must have two arguments!"
+        echo "Usage: ./downloader site file_format"
+	exit 1
+}
+
+if [ ${#} != 2 ]; then
+        usage
+fi
+
+folder=./${file_format}_downloads
+if [ ! -d ${folder} ]; then
+        mkdir ${folder}
+fi
+
+lynx --dump ${website} | awk '/http/{print $2}' | egrep ${file_format}  > ${folder}/links.txt
+
+for link in $(cat ${folder}/links.txt); do
+        wget ${link}
+	mv $(basename ${link}) ${folder}
+done

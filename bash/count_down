@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# This program counts down from a number of seconds
+# Adam Abdulhamid
+# Usage: ./count_down seconds
+#	 ./count_down minutes seconds
+#	 ./count_down hours minutes seconds
+
+usage() {
+	echo "Usage: ./count_down seconds
+		     ./count_down minutes seconds
+		     ./count_down hours minutes seconds"
+}
+
+seconds=0
+minutes=0
+hours=0
+
+# In each case, we calculate the total number of seconds which we'll add to the current time
+if [ ${#} -eq 3 ]; then
+	seconds=${3}
+	minutes=${2}
+	hours=${1}
+	seconds=$((seconds + $((60 * minutes)) + $((3600 * hours))))
+elif [ ${#} -eq 2 ]; then
+	seconds=${2}
+	minutes=${1}
+	seconds=$((seconds + $((60 * minutes))))
+elif [ ${#} -eq 1 ]; then
+	seconds=${1}
+else
+	usage
+fi
+
+start="$(($(date +%s) + $seconds))"
+while [ "$start" -ge `date +%s` ]; do
+	
+	seconds_left="$(( $start - `date +%s` ))" # countdown is based on current date computations
+	printf '%d:%0*d:%0*d\r' $((seconds_left / 3600)) 2 $(( $((seconds_left % 3600)) / 60 )) 2 $((seconds_left % 60))
+		# for minutes and seconds, we set width to 2 using 0's to fill out blank spaces
+done

@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# This program applies the chmod function recursively to all files in directories or subdirectories
+#	of the current location. The specific chmod command can be specified.
+
+# Usage: chmod_r [permission_change]
+#		ex. chmod_r a+r
+#		ex. chmod_r u+r
+
+usage() {
+	echo "chmod_r [permission_change]
+		ex. chmod_r a+r
+		ex. chmod_r u+r"
+	exit 1
+}
+
+change_files() {
+        for f in $(ls ${current_dir}); do
+                if [ -d ${current_dir}/${f} ]; then 
+                        current_dir="${current_dir}/${f}"
+                        change_files
+                elif [ -f ${current_dir}/${f} ]; then
+                        chmod ${perm_change} ${current_dir}/${f}
+                fi
+        done
+        current_dir=$(dirname ${current_dir})
+}
+
+if [ ${#} != 1 ]; then
+	usage
+fi
+
+perm_change=${1}
+current_dir='.'
+
+change_files

@@ -1,0 +1,105 @@
+#!/bin/bash
+
+# Backup program will be responsible for backing up files
+# Our backup program:
+#  -- will have a password (1st command line arg)
+#  -- will take a command from the following list (2nd command line arg)
+#                -- backup: backs up a file
+#                -- restore: restores a backed up file to the current directory
+#                -- list: lists all backed up files
+#		 -- versions: lists all backed up files for a particular file
+#                -- clear: clears our backup directory
+#                -- diff: tells us which files we haven't yet backed up
+#                -- recent: tells has what our most recent backup was
+#		 -- remove: deletes all backed-up files for a specified file
+#		 -- where: tells user where to find their backed-up files
+#		 -- help: gives the user usage instructions and a list of executable instructions
+# -- will check errors
+
+usage() {
+	echo "You must provide at least 2 command line arguments" 1>&2  # Takes output from stdout and sends it to stderr
+        exit 1
+}
+
+if [ ${#} -lt 2 ]; then
+	usage
+fi
+
+password=${1}
+instruction=${2}
+
+backup_dir=~/backup
+
+if [ $password != "password" ]; then
+	echo "You have the wrong password" 1>&2
+	exit 2
+fi
+
+if [ ! -d $backup_dir ]; then
+	mkdir $backup_dir       # first time backing up? No worries, we'll create the directory.
+fi
+
+
+if [ $instruction == "backup" ]; then
+	file=${3}
+	echo "Backing up file ${file}"
+	cp ${file} ${backup_dir}/${file}-$(date +%F_%T)  # Names the backup file according to the full date (F) and time (T)
+	date +%F_%T > ${backup_dir}/.most-recent-backup
+elif [ $instruction == "restore" ]; then
+	file=$3
+	if [ -f ${backup_dir}/${file} ]; then
+		mv ${backup_dir}/${file} .
+	else
+		echo "${file} does not exist, here are some similarly-named files:"
+		for backedUp in $(ls ${backup_dir} | egrep "${file}"); do
+			basename $backedUp   # Strips off directory location and/or extensions
+		done
+	fi
+elif [ $instruction == "list" ]; then
+	echo "You can restore the following files"
+	ls ${backup_dir}
+elif [ $instruction == "versions" ]; then
+	file=${3}
+	echo "Here are all backed-up versions of ${file}"
+	for backedUp in $(ls ${backup_dir} | egrep "^${file}-[0-9][0-9][0-9][0-9]-[01][0-9]-[0-3][0-9]_[0-2][0-9]:[0-5][0-9]:[0-5][0-9]$"); do
+		basename $backedUp
+	done
+elif [ $instruction == "diff" ]; then
+	echo "You haven't yet backed up the following files:"
+	for file in $(ls); do
+		if [ -f ${file} ]; then
+			ls ${backup_dir} | egrep "^${file}-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_[0-9][0-9]:[0-9][0-9]:[0-9][0-9]$" > /dev/null
+			if [ $? -eq 1 ]; then   # file not present in backup directory
+				echo ${file}
+			fi
+		fi
+	done
+elif [ $instruction == "clear" ]; then
+	echo "Clearing the backup directory"
+	rm -r ${backup_dir}	
+elif [ $instruction == "recent" ]; then
+	echo "Your most recent backup was: "
+	cat ${backup_dir}/.most-recent-backup
+elif [ $instruction == "remove" ]; then
+	file=${3}
+	for backup in $(ls ${backup_dir} | egrep "^${file}-[0-9][0-9][0-9][0-9]-[01][0-9]-[0-3][0-9]_[0-2][0-9]:[0-5][0-9]:[0-5][0-9]$"); do
+		rm ${backup_dir}/${backup}
+	done
+elif [ $instruction == "where" ]; then
+	echo "You can find your backup files here: ${backup_dir}"
+elif [ $instruction == "help" ]; then
+	echo "Usage: ${0} [password] [args] [optional file]"
+	echo "Uses:
+#		 -- backup: backs up a file
+#	         -- restore: restores a backed up file to the current directory
+#                -- list: lists all backed up files
+#                -- versions: lists all backed up files for a particular file
+#                -- clear: clears our backup directory
+#                -- diff: tells us which files we haven't yet backed up
+#                -- recent: tells has what our most recent backup was
+#                -- remove: deletes all backed-up files for a specified file
+#                -- where: tells user where to find their backed-up files
+#                -- help: gives the user usage instructions and a list of executable instructions"
+else
+	echo "Invalid command" 1>&2
+fi
